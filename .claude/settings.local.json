@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(python -c ' *)",
+      "Bash(pip show *)",
+      "Bash(ls setup.py setup.cfg pyproject.toml)",
+      "Bash(pip install *)",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'nnunetv2'\\); from nnunetv2.network_modules.anisotropic_attention import AnisotropicAttention; print\\('OK'\\)\")",
+      "Bash(python *)",
+      "Bash(PYTHONIOENCODING=utf-8 python verify_modules.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "Bash(pip3 show *)",
+      "Bash(dir C:\\\\Users\\\\19599\\\\AppData\\\\Roaming\\\\Python\\\\Python314\\\\site-packages\\\\dynamic_network_architectures *)",
+      "Bash(dir C:\\\\Users\\\\19599\\\\AppData\\\\Roaming\\\\Python\\\\Python314\\\\site-packages\\\\dynamic_network_architectures\\\\building_blocks *)",
+      "Bash(conda run *)",
+      "Bash(mv nnunetv2/* .)",
+      "Bash(rmdir nnunetv2/nnunetv2)",
+      "Bash(rmdir nnunetv2 *)",
+      "Read(//d//**)"
+    ]
+  }
+}
