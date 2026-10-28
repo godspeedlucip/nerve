@@ -1,0 +1,25 @@
+# Generated medical-image and projection data
+data/
+output/
+logs/
+log/
+*.nii
+*.nii.gz
+*.npz
+*.npy
+*.tif
+*.tiff
+*.zip
+*.tar
+*.tar.gz
+
+# Model/runtime artifacts
+__pycache__/
+*.py[cod]
+*.pt
+*.pth
+*.ckpt
+.pytest_cache/
+.ipynb_checkpoints/
+.env
+.env.*

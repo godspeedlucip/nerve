@@ -1,0 +1,16 @@
+# gen_data/dtr_sh — 流水线 Shell 脚本
+
+本目录包含快速启动各个流程环节的 bash 脚本。
+
+| 文件 | 功能 |
+|------|------|
+| `nnune_2d.sh` | 启动 2D nnU-Net 训练（用于 ROI 投影分割） |
+| `nnune_3d.sh` | 启动 3D nnU-Net 训练（用于体素分割/重建） |
+| `nnune_3d_stent.sh` | 启动 3D nnU-Net 训练（仅支架分支） |
+| `nnune_3d_vessel.sh` | 启动 3D nnU-Net 训练（仅血管分支） |
+| `dte_map.sh` | 运行 DTE-MAP 数据生成流程 |
+| `post_process.sh` | 后处理：将 ROI 预测拼接到完整投影 (get_dtr_proj_concat) |
+| `other/` | 其他辅助脚本 (cal_dice.sh：计算 Dice 指标) |
+# DTR shell scripts
+
+这些脚本是历史批处理入口，不是独立的数据生成算法。它们的 `data_name`、nnU-Net dataset id、`dtr/proj`/`dtr/recon` 路径必须与 [`../README.md`](../README.md) 中选择的版本保持一致；marker 重生成后不能直接复用旧目录下的预测结果。

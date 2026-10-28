@@ -1,0 +1,56 @@
+# gen_data — 数据生成流水线
+
+本目录包含从 3D 医学图像生成 2D 投影训练数据、以及将预测结果反投影重建为 3D 的全部脚本。
+
+## 数据生成脚本（投影生成）
+
+| 文件 | 功能 |
+|------|------|
+| `resample_image.py` | 将原始 CTA/MR 图像重采样到统一 spacing (默认 0.2mm)，之后所有流程基于重采样后的数据 |
+| `fill_image_hole.py` | 根据血管 mask 填充图像中的血管区域（去除造影剂），为支架植入模拟做准备 |
+| `gen_vessel_vol_gt.py` | 根据 vol_gt_mask 裁剪 vessel label，生成仅含目标区域的 3D ground truth |
+| `gen_vol_gt_mask_proj.py` | 对 vol_gt_mask（3D 目标区域 mask）做 360° 投影，后续只保留该 mask 内的投影区域 |
+| `gen_vessel_proj_cta.py` | 生成纯血管的 2D 投影（CTA 数据源），使用 TIGRE 做 DRR 投影 |
+| `gen_vessel_proj_mr.py` | 生成纯血管的 2D 投影（MR 数据源），会先将 MR 值转换为 CT 值并模拟添加颅骨 |
+| `gen_stent_image_proj_cta.py` | 将支架 3D 模型叠加到血管图像中，生成含支架的 2D 投影（CTA） |
+| `gen_stent_image_proj_mr.py` | 将支架 3D 模型叠加到血管图像中，生成含支架的 2D 投影（MR） |
+
+## DTR（Dynamic Tomography Reconstruction）流程脚本
+
+| 文件 | 功能 |
+|------|------|
+| `get_dtr_proj.py` | 从 360° 完整投影中按角度范围采样，将选中的投影复制到目标目录供预测使用 |
+| `get_dtr_proj_concat.py` | 将 ROI 区域的 2D 预测结果拼接到完整尺寸的投影图中（根据 vol_gt_mask_proj） |
+| `get_dtr_map.py` | 使用 DTE-SEG 分割结果截取原始投影的对应部分，作为 DTE-MAP 的输入 |
+| `get_dtr_recon.py` | 对处理后的投影进行反投影重建（FDK/迭代重建），生成 3D 支架分布 |
+| `ceshi.py` | 测试脚本，将 MR 血管图像转换为模拟 CT 值并添加颅骨 |
+
+## 评估与格式转换脚本
+
+| 文件 | 功能 |
+|------|------|
+| `calculate_dice_2d.py` | 计算 2D 分割结果的 Dice、HD95、ASD 指标 |
+| `calculate_dice_3d.py` | 计算 3D 分割结果（.nii.gz）的 Dice、HD95、ASD 指标 |
+| `calculate_dice_3d_1.py` | 同上，另一个版本的 3D Dice 计算 |
+| `nnUnet_format_dtr_data.py` | 将投影数据转换为 nnU-Net 3D 格式（用于重建流程） |
+| `nnUnet_format_roi_data.py` | 将 ROI 投影数据转换为 nnU-Net 2D 格式（用于分割模型训练） |
+
+## Shell 脚本与 Notebook
+
+| 文件 | 功能 |
+|------|------|
+| `run.sh` | 一键运行：生成 nnU-Net 格式数据 → 数据预处理 → 训练 2D nnU-Net |
+| `all_predict.sh` | 使用已训练的 nnU-Net 对所有投影子文件夹批量预测 |
+| `dte.ipynb` | DTE 相关实验/调试 notebook |
+| `dte_2.ipynb` | DTE 实验 notebook (版本2) |
+| `dte_3.ipynb` | DTE 实验 notebook (版本3) |
+| `nohup.out` | 后台运行的日志输出文件 |
+
+## 子目录
+
+| 目录 | 含义 |
+|------|------|
+| `utils/` | 通用工具函数（文件读写、中心线提取、后处理、支架生成、血管处理、投影几何） |
+| `dtr_sh/` | DTR/训练相关的快速启动 shell 脚本 |
+| `other/` | 辅助脚本：全投影生成、CTA-from-MRA 转换、ROI 投影提取 |
+| `.claude/` | Claude Code 本地配置 |

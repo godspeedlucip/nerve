@@ -1,0 +1,16 @@
+# gen_data/utils — 数据生成工具函数
+
+> 本目录是 DTE 投影脚本的工具层；marker 的 3D 几何在上游 `interior/data/corr_data/utils/markers.py`，这里的 `marker.py` 只负责 image/label 组合。完整链路见 [`../README.md`](../README.md)。
+
+本目录提供 gen_data 各脚本共用的底层工具函数。
+
+| 文件 | 功能 |
+|------|------|
+| `file_rw.py` | 文件读写工具：读取/写入稀疏矩阵 (.npz)、pickle 文件、批量保存 2D 稀疏投影 |
+| `general.py` | 通用几何与转换：TIGRE 投影几何设置、点云体素化、MR→CT 值转换 (coarse_mri_to_ct)、HU→衰减系数转换 (hu_to_mu)、模拟颅骨添加 |
+| `centerline.py` | 血管中心线处理：从骨架点云构建图 (KNN + NetworkX)、随机提取指定长度的血管段 (extract_random_segment) |
+| `vessel.py` | 血管相关：ROI 圆形区域快速提取 (get_circle_roi_fast)，用于在投影图中定位血管区域 |
+| `stent.py` | 支架相关：从骨架段中随机选择血管段、加载多种支架生成器（8 种训练用 + 2 种测试用）、支架膨胀处理 (thicken_by_distance) |
+| `postprocess.py` | 后处理：基于距离变换的支架/血管半径扩张 (thicken_by_distance)，用于调整支架粗细 |
+| `__init__.py` | Python 包初始化文件 |
+| `marker.py` | 将二值 stent/marker mask 组合成输入衰减图和二值 DTE label；marker 关闭时兼容旧逻辑 |

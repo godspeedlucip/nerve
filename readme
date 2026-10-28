@@ -1,0 +1,57 @@
+
+本文件是历史笔记；逐文件说明和推荐版本见 [`README.md`](README.md)。以下旧记录保留用于追溯，不代表所有路径仍然可直接运行。
+
+; resample_image.py: 重采样COSTA和Topbrain数据集
+; gen_proj.py: 生成2D血管分割网络所需要的数据, 也就是对图像每隔10个角度取一个投影
+; nnunet_gen_proj.py: 对于2D投影数据, 生成对应nnunet格式的数据
+; gen_all_proj: 每例图像都进行360个投影, 并存储
+; gen_stent_image.py: 旧名称；当前对应 gen_stent_image_proj_mr.py / gen_stent_image_proj_cta.py
+; crop_image.py: 裁剪投影
+
+
+; 生成2D投影相关的函数:
+
+fill_image_hole.py: 根据mask来填充图像血管, 为生成支架数据做准备. 输入是resample之前的原始图像
+
+resample_image.py: 对于现有的数据集, 进行重采样, 使得它们的spacing和size与之前的支架数据一致. 之后的流程都是基于这个重采样后的图像进行的
+
+gen_stent_image_proj_cta、gen_stent_image_proj_mr: stent已经被叠加到原始血管图像上, 生成其投影. 对于mr数据而言, 会将其值转换为ct的值, 并模拟加上头骨. 对于CT数据而言就不需要
+
+gen_vessel_proj_cta、gen_vessel_proj_mr: 生成血管投影. 对于mr数据而言, 会将其值转换为ct的值, 并模拟加上头骨. 对于CT数据而言就不需要
+
+gen_vol_gt_mask_proj: 生成vol_gt_mask的投影, 之后在生成stent和vessel的投影时, 只保留vol_gt_mask内的部分
+
+gen_vessel_vol_gt.py: 旧的 vol_gt 裁剪/整理脚本，当前主线通常不从它开始
+
+
+生成2D投影数据的流程:
+- 已经有的数据: 血管的roi mask, 与其一一对应的支架mask. 这些都是经过了重采样的
+- 首先，填充图像的血管（因为这些血管图像都是有造影剂的）, 以便生成支架数据
+- 对填充之后的血管图像和原始的label进行resample（生成支架数据时, 其默认的space是0.2）
+- gen_stent_image_proj来生成支架的模拟投影
+- gen_vessel_image_proj来生成血管的模拟投影
+
+
+
+; 生成3D重建的函数:
+get_dtr_proj: 根据给定的range和num将目标图像移动到另外一个文件夹中, 目的是为了仅仅预测这些图像
+get_dtr_proj_concat: 将2D的图像 (ROI) 拼接到实际大小的投影中, 根据vol_gt_mask_proj
+get_dtr_map: 根据DTE-SEG的分割结果, 将原始投影的对应部分截下来, 作为DTE-MAP的输入, 之后再手动调用模型去预测
+get_dtr_recon: 根据得到的结果去重建图像
+
+
+
+生成DTR数据的流程:
+- 首先，对数据进行投影, 先得到vol_gt_mask的投影, 再对stent in image和vessel in image投影, 并只存储vol_gt_mask内的投影
+- 对roi的投影, 转换得到nnunet的数据, 训练得到stent和vessel各自的分割模型
+- 同步训练label的投影转换为对应的深度图的模型
+- 将nnunet应用于实际会处理的数据 (例如0, 30, 60°采样的数据)
+- 得到它们的mask后, 输入到DTE-MAP, 得到符合流程的数据
+- 将处理后的数据拼接到完整的投影中 (get_dtr_concat)
+- 将其反投影重建得到DTR的输入 (get_dtr_recon)
+
+
+; 生成nnunet需要的数据格式的文件:
+nnUnet_format_dtr_data: 负责三维数据
+nnUnet_format_roi_data: 负责二维数据
+
