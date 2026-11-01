@@ -1,0 +1,56 @@
+tif: 先把nib原始文件转换为tif文件再去进行读取
+nib: 直接对原始文件进行操作
+
+
+
+    BRAIN_VESSEL_LABELS_MR = {
+        # 颅内动脉及静脉窦 (IDX 0-34, 43个)
+        0:  {"LABEL": "Clear Label", "FULL_NAME_EN": "N/A", "FULL_NAME_ZH": "清除标签 / 背景", "TYPE": "Background"},
+        1:  {"LABEL": "BA", "FULL_NAME_EN": "Basilar Artery", "FULL_NAME_ZH": "基底动脉", "TYPE": "Artery (Posterior)"},
+        2:  {"LABEL": "R-P1P2", "FULL_NAME_EN": "Right Posterior Cerebral Artery, segments P1 & P2", "FULL_NAME_ZH": "右侧大脑后动脉 P1 和 P2 段", "TYPE": "Artery (Posterior)"},
+        3:  {"LABEL": "L-P1P2", "FULL_NAME_EN": "Left Posterior Cerebral Artery, segments P1 & P2", "FULL_NAME_ZH": "左侧大脑后动脉 P1 和 P2 段", "TYPE": "Artery (Posterior)"},
+        4:  {"LABEL": "R-ICA", "FULL_NAME_EN": "Right Internal Carotid Artery", "FULL_NAME_ZH": "右侧颈内动脉", "TYPE": "Artery (Anterior)"},
+        5:  {"LABEL": "R-M1", "FULL_NAME_EN": "Right Middle Cerebral Artery, segment M1", "FULL_NAME_ZH": "右侧大脑中动脉 M1 段", "TYPE": "Artery (Anterior)"},
+        6:  {"LABEL": "L-ICA", "FULL_NAME_EN": "Left Internal Carotid Artery", "FULL_NAME_ZH": "左侧颈内动脉", "TYPE": "Artery (Anterior)"},
+        7:  {"LABEL": "L-M1", "FULL_NAME_EN": "Left Middle Cerebral Artery, segment M1", "FULL_NAME_ZH": "左侧大脑中动脉 M1 段", "TYPE": "Artery (Anterior)"},
+        8:  {"LABEL": "R-Pcom", "FULL_NAME_EN": "Right Posterior Communicating Artery", "FULL_NAME_ZH": "右侧后交通动脉", "TYPE": "Artery (Communicating)"},
+        9:  {"LABEL": "L-Pcom", "FULL_NAME_EN": "Left Posterior Communicating Artery", "FULL_NAME_ZH": "左侧后交通动脉", "TYPE": "Artery (Communicating)"},
+        10: {"LABEL": "Acom", "FULL_NAME_EN": "Anterior Communicating Artery", "FULL_NAME_ZH": "前交通动脉", "TYPE": "Artery (Communicating)"},
+        11: {"LABEL": "R-A1A2", "FULL_NAME_EN": "Right Anterior Cerebral Artery, segments A1 & A2", "FULL_NAME_ZH": "右侧大脑前动脉 A1 和 A2 段", "TYPE": "Artery (Anterior)"},
+        12: {"LABEL": "L-A1A2", "FULL_NAME_EN": "Left Anterior Cerebral Artery, segments A1 & A2", "FULL_NAME_ZH": "左侧大脑前动脉 A1 和 A2 段", "TYPE": "Artery (Anterior)"},
+        13: {"LABEL": "R-A3", "FULL_NAME_EN": "Right Anterior Cerebral Artery, segment A3", "FULL_NAME_ZH": "右侧大脑前动脉 A3 段", "TYPE": "Artery (Anterior)"},
+        14: {"LABEL": "L-A3", "FULL_NAME_EN": "Left Anterior Cerebral Artery, segment A3", "FULL_NAME_ZH": "左侧大脑前动脉 A3 段", "TYPE": "Artery (Anterior)"},
+        15: {"LABEL": "3rd-A2", "FULL_NAME_EN": "3rd Anterior Cerebral Artery, segment A2 (Variant)", "FULL_NAME_ZH": "第三大脑前动脉 A2 段 (变异)", "TYPE": "Artery (Variant)"},
+        16: {"LABEL": "3rd-A3", "FULL_NAME_EN": "3rd Anterior Cerebral Artery, segment A3 (Variant)", "FULL_NAME_ZH": "第三大脑前动脉 A3 段 (变异)", "TYPE": "Artery (Variant)"},
+        17: {"LABEL": "R-M2", "FULL_NAME_EN": "Right Middle Cerebral Artery, segment M2", "FULL_NAME_ZH": "右侧大脑中动脉 M2 段", "TYPE": "Artery (Anterior)"},
+        18: {"LABEL": "R-M3", "FULL_NAME_EN": "Right Middle Cerebral Artery, segment M3", "FULL_NAME_ZH": "右侧大脑中动脉 M3 段", "TYPE": "Artery (Anterior)"},
+        19: {"LABEL": "L-M2", "FULL_NAME_EN": "Left Middle Cerebral Artery, segment M2", "FULL_NAME_ZH": "左侧大脑中动脉 M2 段", "TYPE": "Artery (Anterior)"},
+        20: {"LABEL": "L-M3", "FULL_NAME_EN": "Left Middle Cerebral Artery, segment M3", "FULL_NAME_ZH": "左侧大脑中动脉 M3 段", "TYPE": "Artery (Anterior)"},
+        21: {"LABEL": "R-P3P4", "FULL_NAME_EN": "Right Posterior Cerebral Artery, segments P3 & P4", "FULL_NAME_ZH": "右侧大脑后动脉 P3 和 P4 段", "TYPE": "Artery (Posterior)"},
+        22: {"LABEL": "L-P3P4", "FULL_NAME_EN": "Left Posterior Cerebral Artery, segments P3 & P4", "FULL_NAME_ZH": "左侧大脑后动脉 P3 和 P4 段", "TYPE": "Artery (Posterior)"},
+        23: {"LABEL": "R-VA", "FULL_NAME_EN": "Right Vertebral Artery", "FULL_NAME_ZH": "右侧椎动脉", "TYPE": "Artery (Posterior)"},
+        24: {"LABEL": "L-VA", "FULL_NAME_EN": "Left Vertebral Artery", "FULL_NAME_ZH": "左侧椎动脉", "TYPE": "Artery (Posterior)"},
+        25: {"LABEL": "R-SCA", "FULL_NAME_EN": "Right Superior Cerebellar Artery", "FULL_NAME_ZH": "右侧小脑上动脉", "TYPE": "Artery (Cerebellar)"},
+        26: {"LABEL": "L-SCA", "FULL_NAME_EN": "Left Superior Cerebellar Artery", "FULL_NAME_ZH": "左侧小脑上动脉", "TYPE": "Artery (Cerebellar)"},
+        27: {"LABEL": "R-AICA", "FULL_NAME_EN": "Right Anterior Inferior Cerebellar Artery", "FULL_NAME_ZH": "右侧小脑前下动脉", "TYPE": "Artery (Cerebellar)"},
+        28: {"LABEL": "L-AICA", "FULL_NAME_EN": "Left Anterior Inferior Cerebellar Artery", "FULL_NAME_ZH": "左侧小脑前下动脉", "TYPE": "Artery (Cerebellar)"},
+        29: {"LABEL": "R-PICA", "FULL_NAME_EN": "Right Posterior Inferior Cerebellar Artery", "FULL_NAME_ZH": "右侧小脑后下动脉", "TYPE": "Artery (Cerebellar)"},
+        30: {"LABEL": "L-PICA", "FULL_NAME_EN": "Left Posterior Inferior Cerebellar Artery", "FULL_NAME_ZH": "左侧小脑后下动脉", "TYPE": "Artery (Cerebellar)"},
+        31: {"LABEL": "R-AChA", "FULL_NAME_EN": "Right Anterior Choroidal Artery", "FULL_NAME_ZH": "右侧脉络膜前动脉", "TYPE": "Artery (Deep)"},
+        32: {"LABEL": "L-AChA", "FULL_NAME_EN": "Left Anterior Choroidal Artery", "FULL_NAME_ZH": "左侧脉络膜前动脉", "TYPE": "Artery (Deep)"},
+        33: {"LABEL": "R-OA", "FULL_NAME_EN": "Right Ophthalmic Artery", "FULL_NAME_ZH": "右侧眼动脉", "TYPE": "Artery (Intracranial)"},
+        34: {"LABEL": "L-OA", "FULL_NAME_EN": "Left Ophthalmic Artery", "FULL_NAME_ZH": "左侧眼动脉", "TYPE": "Artery (Intracranial)"},
+        
+        # 颅外血管及深静脉 [MRI特有的标签]
+        35: {"LABEL": "R-ECA", "FULL_NAME_EN": "Right External Carotid Artery", "FULL_NAME_ZH": "右侧颈外动脉", "TYPE": "Artery (Extracranial)"},
+        36: {"LABEL": "L-ECA", "FULL_NAME_EN": "Left External Carotid Artery", "FULL_NAME_ZH": "左侧颈外动脉", "TYPE": "Artery (Extracranial)"},
+        37: {"LABEL": "R-STA", "FULL_NAME_EN": "Right Superficial Temporal Artery", "FULL_NAME_ZH": "右侧颞浅动脉", "TYPE": "Artery (Extracranial)"},
+        38: {"LABEL": "L-STA", "FULL_NAME_EN": "Left Superficial Temporal Artery", "FULL_NAME_ZH": "左侧颞浅动脉", "TYPE": "Artery (Extracranial)"},
+        39: {"LABEL": "R-MaxA", "FULL_NAME_EN": "Right Maxillary Artery", "FULL_NAME_ZH": "右侧上颌动脉", "TYPE": "Artery (Extracranial)"},
+        40: {"LABEL": "L-MaxA", "FULL_NAME_EN": "Left Maxillary Artery", "FULL_NAME_ZH": "左侧上颌动脉", "TYPE": "Artery (Extracranial)"},
+        41: {"LABEL": "R-MMA", "FULL_NAME_EN": "Right Middle Meningeal Artery", "FULL_NAME_ZH": "右侧脑膜中动脉", "TYPE": "Artery (Extracranial)"},
+        42: {"LABEL": "L-MMA", "FULL_NAME_EN": "Left Middle Meningeal Artery", "FULL_NAME_ZH": "左侧脑膜中动脉", "TYPE": "Artery (Extracranial)"},
+        # 注意：如果您的原始数据中包含 VoG (35), StS (36), SSS (40) 等静脉标签，
+        # 但新的列表用动脉覆盖了这些 IDX，那么请以新的列表为准。
+        # 这里我们假设您已经更新了标签文件，用新的动脉标签替换了旧的静脉标签。
+    }

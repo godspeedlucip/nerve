@@ -1,0 +1,9 @@
+详细的 DTE 上游生成器说明见 [`README_DTE_GENERATOR.md`](README_DTE_GENERATOR.md)。
+
+一站式生成对应的支架和血管: `gen_stent_and_vessel.py`
+gen_2d_from_3d: 读取支架和血管的图像, 将其渲染到三维空间，并对其进行二维视图的投影
+
+gen_truncate_data_dte: 这个不知道是什么时候的代码了，显示是25.1.8才修改的，应该是很久之前的
+gen_truncate_data_yes_fdk.py: 也不知道是什么时候的代码了。
+
+marker 重生成只使用当前 `gen_stent_and_vessel.py`；`copy`、`diffR`、`to_down` 等文件保留为历史对照，不会自动同步 marker 接口。

@@ -1,0 +1,55 @@
+# Repository-local planning and runtime metadata
+.superpowers/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Python/editor/runtime artifacts
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.vscode/
+*.log
+**/nohup.out
+**/logs/
+**/log/
+
+# Local datasets and generated workspace outputs
+real_data/
+data/src_data/
+data/corr_data/data/
+data/readme
+data/**/helper/
+data/**/resample/
+data/**/trun_data/
+data/**/trun_data_02/
+data/**/truncate_data/
+data/**/save_to_check/
+output/
+**/output/
+**/outputs/
+**/checkpoints/
+
+# Medical-image, projection, cache and model artifacts
+*.nii
+*.nii.gz
+*.npy
+*.npz
+*.tif
+*.tiff
+*.pickle
+*.pkl
+*.ply
+*.pt
+*.pth
+*.ckpt
+
+# Archives and other large binary artifacts
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.h5
+*.hdf5
+*.mat

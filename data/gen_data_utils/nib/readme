@@ -1,0 +1,8 @@
+get_resample_roi_costa.py: 改进之后的，包括提前计算一些变量. 也包括部分优化
+get_resample_roi_costa_before.py: 之前，在get_roi_data_costa.py的里面加了resample部分。
+
+get_resample_roi_costa_before.py: 对应get_resample_roi_costa的改进的代码
+get_trun_data_costa.py: 最原来的get_trun的代码
+
+
+

@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=4 python get_resample_roi.py --radius=64 --resolution=0.2 --data_path=/data1/liuyang/stent/interior/data/other/smile/helper   --save_path=/data1/liuyang/stent/interior/data/other/smile/resample &
