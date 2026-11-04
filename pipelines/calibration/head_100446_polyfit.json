@@ -1,0 +1,13 @@
+{
+  "degree": 3,
+  "coefficients_ascending": [
+    1.7170384564162378,
+    1.9228290752840604,
+    -0.9209756862932292,
+    0.20133663764262918
+  ],
+  "input_range": [0.21088638976216317, 4.0024325966835],
+  "reference": "head_2_over.tif / head/proj/100446_proj",
+  "training_sample": "topcow_ct_001",
+  "validation_quantile_mae": 0.3399754322243509
+}

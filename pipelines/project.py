@@ -25,6 +25,9 @@ from pipelines.stent_fov import (
     validate_stent_projection,
 )
 from pipelines.tool import TigreTool
+from pipelines.calibration.auto_polyfit import (
+    DEFAULT_REAL_HEAD_PROJ_DIR, calibrate_head_projections,
+)
 
 
 N_DETECTOR = (1056, 1056)
@@ -368,7 +371,9 @@ def project_stent(stent_dir: Path, output_root: Path,
 def project_topbrain(topbrain_dir: Path, series: str | None = None, *,
                      n_projections: int = DEFAULT_N_PROJECTIONS,
                      angle_span_deg: float = DEFAULT_ANGLE_SPAN_DEG,
-                     output_mode: str = DEFAULT_OUTPUT_MODE) -> dict | list[dict]:
+                     output_mode: str = DEFAULT_OUTPUT_MODE,
+                     real_head_proj_dir: Path = DEFAULT_REAL_HEAD_PROJ_DIR,
+                     auto_polyfit: bool = True) -> dict | list[dict]:
     """Project CT directly with the geometry defined by this pipeline."""
     topbrain_dir = Path(topbrain_dir)
     if series is None or str(series).strip().lower() == "all":
@@ -387,6 +392,8 @@ def project_topbrain(topbrain_dir: Path, series: str | None = None, *,
                 n_projections=n_projections,
                 angle_span_deg=angle_span_deg,
                 output_mode=output_mode,
+                real_head_proj_dir=real_head_proj_dir,
+                auto_polyfit=auto_polyfit,
             )
             for sample_dir in sample_dirs
         ]
@@ -398,6 +405,8 @@ def project_topbrain(topbrain_dir: Path, series: str | None = None, *,
              if preparation.is_file() else None)
     if split not in ("train", "test"):
         raise ValueError(f"split missing or invalid for CT {series}; regenerate preparation metadata")
+    if auto_polyfit and not Path(real_head_proj_dir).is_dir():
+        raise FileNotFoundError(f"real head RAW projection directory not found: {real_head_proj_dir}")
     ct_path = work_dir / "topbrain_filled_real_grid.nii.gz"
     ct_header = nib.load(str(ct_path))
     spacing = np.asarray(ct_header.header.get_zooms()[:3])
@@ -420,6 +429,9 @@ def project_topbrain(topbrain_dir: Path, series: str | None = None, *,
     project_volume(head, geometry, angles_rad, view_indices, work_dir,
                    "head", blur_px=1.0, output_mode=output_mode,
                    angles_deg=angles_deg)
+    polyfit_report = (calibrate_head_projections(
+        work_dir, angles_deg, view_indices, output_mode, real_head_proj_dir
+    ) if auto_polyfit else {"applied": False})
     report = {
         "sample": series,
         "split": split,
@@ -433,6 +445,7 @@ def project_topbrain(topbrain_dir: Path, series: str | None = None, *,
         "angle_endpoint_included": True,
         "head_source": str(ct_path),
         "head_sigma_px": 1.0,
+        "head_polyfit": polyfit_report,
         "mu_water": 0.0227,
         "voxel_spacing_multiplier": VOXEL_SPACING_MULTIPLIER,
         "geometry": geometry_info,
@@ -468,6 +481,11 @@ if __name__ == "__main__":
     head_parser.add_argument("--angle-span-deg", type=float, default=DEFAULT_ANGLE_SPAN_DEG)
     head_parser.add_argument("--output-mode", choices=("2D", "3D"),
                              default=DEFAULT_OUTPUT_MODE)
+    head_parser.add_argument("--real-head-proj-dir", type=Path,
+                             default=DEFAULT_REAL_HEAD_PROJ_DIR,
+                             help="real head phantom RAW projection directory for automatic polyfit")
+    head_parser.add_argument("--no-auto-polyfit", action="store_true",
+                             help="save original TopBrain head projections without calibration")
     args = parser.parse_args()
     if args.command == "project_stent":
         result = project_stent(
@@ -482,5 +500,7 @@ if __name__ == "__main__":
             n_projections=args.n_projections,
             angle_span_deg=args.angle_span_deg,
             output_mode=args.output_mode,
+            real_head_proj_dir=args.real_head_proj_dir,
+            auto_polyfit=not args.no_auto_polyfit,
         )
     print(json.dumps(result, ensure_ascii=False, indent=2))

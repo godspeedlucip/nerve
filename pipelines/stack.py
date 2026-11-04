@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import sys
@@ -20,20 +21,56 @@ from pipelines.utils import (frame_path, projection_stack_path, prune_projection
                              read_frame, read_projection_frame, save_frame)
 
 
+DEFAULT_NOISE_STD = 0.03
+
+
 def compose_projection(head: np.ndarray, implant: np.ndarray,
-                       implant_sigma_px: float = 1.2) -> tuple[np.ndarray, np.ndarray]:
-    """Return (head + smoothed implant, smoothed implant)."""
+                       implant_sigma_px: float = 1.2, *,
+                       noise_std: float = DEFAULT_NOISE_STD,
+                       rng: np.random.Generator | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """Return (noisy head + smoothed implant, smoothed implant)."""
     if head.shape != implant.shape:
         raise ValueError("head and implant projections must have the same shape")
+    if not np.isfinite(noise_std) or noise_std < 0:
+        raise ValueError("noise_std must be finite and nonnegative")
     implant = np.asarray(implant, dtype=np.float32)
     if implant_sigma_px > 0:
         implant = gaussian_filter(implant, sigma=implant_sigma_px)
     implant = implant.astype(np.float32, copy=False)
-    return (np.asarray(head, dtype=np.float32) + implant).astype(np.float32), implant
+    noisy_head = np.asarray(head, dtype=np.float32)
+    if noise_std > 0:
+        if rng is None:
+            rng = np.random.default_rng()
+        noisy_head = noisy_head + rng.normal(0.0, noise_std, noisy_head.shape).astype(np.float32)
+    image = noisy_head + implant
+    return image.astype(np.float32, copy=False), implant
+
+
+def _view_rng(seed: int, sample: str, view_index: int) -> np.random.Generator:
+    """Give each sample/view a stable noise field across stent variants."""
+    sample_id = int.from_bytes(
+        hashlib.sha256(sample.encode("utf-8")).digest()[:8], "little"
+    )
+    return np.random.default_rng(np.random.SeedSequence(
+        [seed, sample_id & 0xffffffff, sample_id >> 32, int(view_index)]
+    ))
+
+
+def _load_head_polyfit(path: Path) -> tuple[np.ndarray, str]:
+    raw = Path(path).read_bytes()
+    config = json.loads(raw)
+    coefficients = np.asarray(config["coefficients_ascending"], dtype=np.float64)
+    if (coefficients.ndim != 1 or not 2 <= len(coefficients) <= 4
+            or config.get("degree") != len(coefficients) - 1
+            or not np.isfinite(coefficients).all()):
+        raise ValueError("head polyfit needs finite degree 1-3 coefficients in ascending order")
+    return coefficients, hashlib.sha256(raw).hexdigest()
 
 
 def stack(work_dir: Path, stent_projection_dir: Path, *,
           output_dir: Path | None = None, implant_sigma_px: float = 1.2,
+          noise_std: float = DEFAULT_NOISE_STD, noise_seed: int = 42,
+          head_polyfit: Path | None = None,
           _head_frames: list[np.ndarray] | None = None) -> dict:
     """Combine TopBrain and stent projections in their shared output mode.
 
@@ -45,8 +82,17 @@ def stack(work_dir: Path, stent_projection_dir: Path, *,
     stent_projection_dir = Path(stent_projection_dir)
     if implant_sigma_px < 0:
         raise ValueError("implant_sigma_px must be nonnegative")
+    if not np.isfinite(noise_std) or noise_std < 0:
+        raise ValueError("noise_std must be finite and nonnegative")
+    if not isinstance(noise_seed, int) or noise_seed < 0:
+        raise ValueError("noise_seed must be a nonnegative integer")
+    polyfit_coefficients, polyfit_hash = (
+        _load_head_polyfit(head_polyfit) if head_polyfit is not None else (None, None)
+    )
 
     head_info = json.loads((work_dir / "projection.json").read_text(encoding="utf-8"))
+    if head_polyfit is not None and head_info.get("head_polyfit", {}).get("applied"):
+        raise ValueError("head projections are already calibrated; do not pass --head-polyfit")
     stent_info = json.loads(
         (stent_projection_dir / "projection.json").read_text(encoding="utf-8")
     )
@@ -108,8 +154,14 @@ def stack(work_dir: Path, stent_projection_dir: Path, *,
                 )
             if not np.isfinite(head).all() or not np.isfinite(implant_source).all():
                 raise ValueError(f"non-finite projection at view {view_index}")
+            if polyfit_coefficients is not None:
+                head = np.polynomial.polynomial.polyval(
+                    head, polyfit_coefficients
+                ).astype(np.float32)
             image, implant = compose_projection(
-                head, implant_source, implant_sigma_px=implant_sigma_px
+                head, implant_source, implant_sigma_px=implant_sigma_px,
+                noise_std=noise_std,
+                rng=_view_rng(noise_seed, str(head_info.get("sample") or work_dir.name), view_index),
             )
             for kind, values in (
                 ("image", image), ("implant_smoothed", implant),
@@ -148,6 +200,7 @@ def stack(work_dir: Path, stent_projection_dir: Path, *,
         "head_geometry": head_geometry,
         "stent_geometry": stent_geometry,
         "head_projection_source": str(work_dir),
+        "head_projection_polyfit": head_info.get("head_polyfit"),
         "stent_projection_source": str(stent_projection_dir),
     }
     (output_dir / "projection.json").write_text(
@@ -158,7 +211,15 @@ def stack(work_dir: Path, stent_projection_dir: Path, *,
         "stent_mu": stent_info.get("stent_mu", 0.17),
         "marker_mu": stent_info.get("marker_mu", 1.02),
         "implant_sigma_px": implant_sigma_px,
-        "formula": "image = head + Gaussian(combined implant projection)",
+        "noise_std": noise_std,
+        "noise_seed": noise_seed,
+        "head_polyfit_source": str(head_polyfit) if head_polyfit is not None else None,
+        "head_polyfit_sha256": polyfit_hash,
+        "head_polyfit_coefficients_ascending": (
+            polyfit_coefficients.tolist() if polyfit_coefficients is not None else None
+        ),
+        "formula": "image = " + ("Polyfit(head)" if polyfit_coefficients is not None else "head")
+                   + " + GaussianNoise(0, noise_std) + Gaussian(combined implant projection)",
         "output_dir": str(output_dir),
     }
     (output_dir / "stack.json").write_text(
@@ -178,7 +239,9 @@ def _projection_files_ready(directory: Path, kind: str, info: dict) -> bool:
 
 
 def _completed_stack(output: Path, head: Path, implant: Path,
-                     info: dict, implant_sigma_px: float) -> bool:
+                     info: dict, implant_sigma_px: float,
+                     noise_std: float, noise_seed: int,
+                     polyfit_hash: str | None) -> bool:
     report_path = output / "stack.json"
     if not report_path.is_file():
         return False
@@ -192,6 +255,9 @@ def _completed_stack(output: Path, head: Path, implant: Path,
     if (report.get("head_projection_source") != str(head)
             or report.get("stent_projection_source") != str(implant)
             or report.get("implant_sigma_px") != implant_sigma_px
+            or report.get("noise_std", 0.0) != noise_std
+            or report.get("noise_seed", 42) != noise_seed
+            or report.get("head_polyfit_sha256") != polyfit_hash
             or report.get("angles_deg") != info.get("angles_deg", info.get("angles"))
             or report.get("output_mode") != info.get("output_mode", "3D")):
         return False
@@ -200,7 +266,10 @@ def _completed_stack(output: Path, head: Path, implant: Path,
 
 
 def stack_all(stent_dir: Path, image_dir: Path, *,
-              implant_sigma_px: float = 1.2) -> dict:
+              implant_sigma_px: float = 1.2,
+              noise_std: float = DEFAULT_NOISE_STD, noise_seed: int = 42,
+              output_root: Path | None = None,
+              head_polyfit: Path | None = None) -> dict:
     """Stack every currently available projected CT and stent variant.
 
     ``stent_dir`` may point to stent projections directly or to the sibling
@@ -210,9 +279,15 @@ def stack_all(stent_dir: Path, image_dir: Path, *,
     topbrain_dir = Path(image_dir)
     stent_projection_root = (stent_dir.parent / "stent_projections"
                              if stent_dir.name == "stent_models" else stent_dir)
-    output_root = topbrain_dir.parent / "stacked"
+    output_root = Path(output_root) if output_root is not None else topbrain_dir.parent / "stacked"
     if implant_sigma_px < 0:
         raise ValueError("implant_sigma_px must be nonnegative")
+    if not np.isfinite(noise_std) or noise_std < 0:
+        raise ValueError("noise_std must be finite and nonnegative")
+    if not isinstance(noise_seed, int) or noise_seed < 0:
+        raise ValueError("noise_seed must be a nonnegative integer")
+    polyfit_hash = (_load_head_polyfit(head_polyfit)[1]
+                    if head_polyfit is not None else None)
     if not topbrain_dir.is_dir() or not stent_projection_root.is_dir():
         raise FileNotFoundError("image and stent projection directories must exist")
 
@@ -250,7 +325,8 @@ def stack_all(stent_dir: Path, image_dir: Path, *,
             output = (output_root / head_info["split"] / sample.name
                       / projection.parent.name / projection.name)
             if _completed_stack(output, sample, projection,
-                                head_info, implant_sigma_px):
+                                head_info, implant_sigma_px, noise_std, noise_seed,
+                                polyfit_hash):
                 skipped += 1
                 continue
             pending.append((projection, output))
@@ -267,7 +343,9 @@ def stack_all(stent_dir: Path, image_dir: Path, *,
             ) for page, index in enumerate(indices)]
         for projection, output in pending:
             stack(sample, projection, output_dir=output,
-                  implant_sigma_px=implant_sigma_px, _head_frames=head_frames)
+                  implant_sigma_px=implant_sigma_px, noise_std=noise_std,
+                  noise_seed=noise_seed, head_polyfit=head_polyfit,
+                  _head_frames=head_frames)
             completed += 1
             print(f"Stacked {completed + skipped}/{total}: {sample.name} + "
                   f"{projection.parent.name}/{projection.name}", flush=True)
@@ -281,6 +359,17 @@ if __name__ == "__main__":
                         help="stent_models or stent_projections folder")
     parser.add_argument("--image-dir", type=Path, required=True,
                         help="folder containing projected image samples")
+    parser.add_argument("--noise-std", type=float, default=DEFAULT_NOISE_STD,
+                        help="Gaussian noise standard deviation in projection value units (default: 0.03)")
+    parser.add_argument("--noise-seed", type=int, default=42,
+                        help="seed for reproducible noise (default: 42)")
+    parser.add_argument("--output-root", type=Path,
+                        help="optional root directory for stacked results")
+    parser.add_argument("--head-polyfit", type=Path,
+                        help="JSON calibration applied to head before noise and stent stacking")
     args = parser.parse_args()
-    result = stack_all(args.stent_dir, args.image_dir)
+    result = stack_all(args.stent_dir, args.image_dir,
+                       noise_std=args.noise_std, noise_seed=args.noise_seed,
+                       output_root=args.output_root,
+                       head_polyfit=args.head_polyfit)
     print(json.dumps(result, ensure_ascii=False, indent=2))
